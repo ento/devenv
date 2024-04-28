@@ -1,0 +1,12 @@
+inputs:
+  devenv:
+    url: path:../../?dir=src/modules/
+  nix2container:
+    url: github:ento/nix2container?ref=reproducible-image-flag
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  mk-shell-bin:
+    url: github:rrbutani/nix-mk-shell-bin
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
