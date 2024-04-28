@@ -114,12 +114,15 @@ let
       mkTmp
     ];
 
+    reproducible = cfg.reproducible;
+
     maxLayers = cfg.maxLayers;
 
     layers = [
       (nix2container.nix2container.buildLayer {
         perms = map mkPerm (mkMultiHome (homeRoots cfg));
         copyToRoot = mkMultiHome (homeRoots cfg);
+        reproducible = cfg.reproducible;
       })
     ];
 
@@ -189,6 +192,13 @@ let
         type = types.nullOr types.str;
         description = "Version/tag of the container.";
         default = "latest";
+      };
+
+      reproducible = lib.mkOption {
+        type = types.bool;
+        description = "Store the layer tar in the image derivation. This is useful when the layer dependencies are not bit reproducible.";
+        default = true;
+        defaultText = "true";
       };
 
       copyToRoot = lib.mkOption {
