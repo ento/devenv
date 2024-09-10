@@ -45,6 +45,7 @@ let
   '';
 
   mkHome = path: (pkgs.runCommand "devenv-container-home" { } ''
+    mkdir -p $out${homeDir}
     cp -R ${path}/. $out${homeDir}/
   '');
 
