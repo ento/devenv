@@ -100,6 +100,7 @@ let
     initializeNixDatabase = true;
     nixUid = lib.toInt uid;
     nixGid = lib.toInt gid;
+    verifyTrace = cfg.verifyTrace;
 
     copyToRoot = [
       (pkgs.buildEnv {
@@ -125,12 +126,20 @@ let
         builtins.foldl'
           (layers: layer:
             layers ++ [
-              (nix2container.nix2container.buildLayer (layer // { inherit layers; }))
+              (nix2container.nix2container.buildLayer (layer // {
+                inherit layers;
+                trace = cfg.verifyTrace;
+              }))
             ]
           )
           [ ]
           cfg.layers
-      else builtins.map (layer: nix2container.nix2container.buildLayer layer) cfg.layers
+      else
+        builtins.map
+          (layer: nix2container.nix2container.buildLayer (layer // {
+            trace = cfg.verifyTrace;
+          }))
+          cfg.layers
     ;
 
     perms = [
@@ -358,6 +367,12 @@ let
         type = types.package;
         internal = true;
         default = mkDerivation config;
+      };
+
+      traceScript = lib.mkOption {
+        type = types.package;
+        internal = true;
+        default = (mkDerivation (config // { verifyTrace = true; })).verifyTrace;
       };
 
       copyScript = lib.mkOption {
