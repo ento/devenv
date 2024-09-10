@@ -248,7 +248,13 @@ pub(crate) enum ProcessesCommand {
 )]
 pub(crate) enum ContainerCommand {
     #[command(about = "Build a container.")]
-    Build { name: String },
+    Build {
+        name: String,
+
+        // Maybe this should be a separate command like verify-trace
+        #[arg(long, help = "Verify trace.")]
+        trace: bool,
+    },
 
     #[command(about = "Copy a container to registry.")]
     Copy { name: String },

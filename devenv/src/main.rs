@@ -74,9 +74,9 @@ fn main() -> Result<()> {
                 None => {
                     if let Some(c) = command {
                         match c {
-                            ContainerCommand::Build { name } => {
+                            ContainerCommand::Build { name, trace } => {
                                 devenv.container_name = Some(name.clone());
-                                let _ = devenv.container_build(&name)?;
+                                let _ = devenv.container_build(&name, &trace)?;
                             }
                             ContainerCommand::Copy { name } => {
                                 devenv.container_name = Some(name.clone());
@@ -105,7 +105,7 @@ fn main() -> Result<()> {
                         }
                         _ => {
                             logger.warn("Calling without a subcommand is deprecated, use `devenv container build` instead");
-                            let _ = devenv.container_build(&name)?;
+                            let _ = devenv.container_build(&name, &false)?;
                         }
                     };
                 }

@@ -309,7 +309,7 @@ impl Devenv {
         Ok(())
     }
 
-    pub fn container_build(&mut self, name: &str) -> Result<String> {
+    pub fn container_build(&mut self, name: &str, trace: &bool) -> Result<String> {
         if cfg!(target_os = "macos") {
             bail!("Containers are not supported on macOS yet: https://github.com/cachix/devenv/issues/430");
         }
@@ -320,23 +320,63 @@ impl Devenv {
 
         self.assemble(false)?;
 
-        let container_store_path = self.run_nix(
-            "nix",
-            &[
-                "build",
-                "--print-out-paths",
-                "--no-link",
-                &format!(".#devenv.containers.{name}.derivation"),
-            ],
-            &command::Options::default(),
-        )?;
+        if *trace {
+            let trace_path = self.run_nix(
+                "nix",
+                &[
+                    "build",
+                    "--print-out-paths",
+                    "--no-link",
+                    &format!(".#devenv.containers.{name}.traceScript"),
+                ],
+                &command::Options::default(),
+            )?;
 
-        let container_store_path_string = String::from_utf8_lossy(&container_store_path.stdout)
-            .to_string()
-            .trim()
-            .to_string();
-        println!("{}", container_store_path_string);
-        Ok(container_store_path_string)
+            let trace_path = String::from_utf8_lossy(&trace_path.stdout)
+                .to_string()
+                .trim()
+                .to_string();
+            let verify_trace_script = Path::new(&trace_path).join("bin/verify-trace");
+
+            self.logger
+                .info(&format!("Running {}", &verify_trace_script.display()));
+
+            let status = std::process::Command::new(verify_trace_script)
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .status()
+                .expect("Failed to run verify-trace script");
+
+            if !status.success() {
+                bail!("Failed to trace container")
+            } else {
+                Ok("".into())
+            }
+        } else {
+            let container_store_path = self.run_nix(
+                "nix",
+                &[
+                    "build",
+                    "--print-out-paths",
+                    "--no-link",
+                    &format!(".#devenv.containers.{name}.derivation"),
+                ],
+                &command::Options::default(),
+            )?;
+
+            let container_store_path_string = String::from_utf8_lossy(&container_store_path.stdout)
+                .to_string()
+                .trim()
+                .to_string();
+            println!("{}", container_store_path_string);
+            let spec = Path::new(&container_store_path_string).join("image.json");
+            match spec.to_str() {
+                Some(spec) => Ok(spec.into()),
+                None => {
+                    bail!("Failed to get container path")
+                }
+            }
+        }
     }
 
     pub fn container_copy(
@@ -345,7 +385,7 @@ impl Devenv {
         copy_args: &[String],
         registry: Option<&str>,
     ) -> Result<()> {
-        let spec = self.container_build(name)?;
+        let spec = self.container_build(name, &false)?;
 
         let _logprogress = self
             .log_progress
